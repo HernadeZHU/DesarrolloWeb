@@ -1,10 +1,12 @@
 'use client'; // necesario para usar hooks en App Router
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation'; // 👈 Añadimos el router para redirección
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const router = useRouter(); // 👈 Hook para navegar
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -15,25 +17,38 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/auth/register', {
+      // Primero: Registrar usuario
+      const registerResponse = await fetch('http://localhost:8080/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (!response.ok) {
-        throw new Error('Error al registrar');
+      if (!registerResponse.ok) {
+        throw new Error('Error al registrar usuario.');
       }
 
-      const data = await response.text(); // porque devuelve un string
-      console.log('Registro exitoso:', data);
-      alert('Usuario registrado correctamente. Ahora puedes iniciar sesión.');
-      window.location.href = '/'; // Redirigir al login
+      console.log('Usuario registrado exitosamente');
+
+      // Segundo: Hacer login automático
+      const loginResponse = await fetch('http://localhost:8080/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!loginResponse.ok) {
+        throw new Error('Error al iniciar sesión después del registro.');
+      }
+
+      const loginData = await loginResponse.json();
+      localStorage.setItem('token', loginData.token); // Guarda el token 🔒
+
+      alert('Usuario registrado e ingresado exitosamente 🚀');
+      router.push('/dashboard'); // Redirige automáticamente al Dashboard
     } catch (error) {
-      console.error('Error en el registro:', error);
-      alert('Hubo un problema al registrar el usuario.');
+      console.error('Error en el flujo de registro/login:', error);
+      alert('Ocurrió un problema al registrar o iniciar sesión.');
     }
   };
 
